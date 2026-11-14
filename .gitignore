@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+# Local HLS output and state from the streamer
+apps/streamer/hls/
+# Fallback audio is never committed
+apps/streamer/fallback/*
+!apps/streamer/fallback/README.md
