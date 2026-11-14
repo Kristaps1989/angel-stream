@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eņģeļu straume – dziesmas pasūtīšanas bloks (prototips)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<!--
+  Runnable reference for the Angel Stream block and order flow.
+  No backend: songs, "now playing" and the time window are sample data, and the
+  pay button only shows the thank-you screen. Comments marked API show where the
+  real endpoints from docs/ARCHITECTURE.md plug in.
+  Add ?closed=1 to the URL to see the closed state.
+-->
+<style>
+:root{
+  --bg:#F7F7F7; --card:#FFFFFF; --ink:#1D1D1B; --muted:#555555;
+  --red:#E3342F; --yellow:#E8B53B; --yellow-ink:#8A6300; --line:#E6E6E6;
+  --shadow:0 4px 24px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Montserrat,Arial,sans-serif}
+button,input,textarea{font-family:inherit;color:inherit}
+.col{max-width:980px;margin:0 auto;padding:48px 16px}
+.section-title{margin:0 0 20px;font-size:22px;font-weight:400}
+.row{display:flex;gap:16px;align-items:stretch}
+.card{background:var(--card);border-radius:14px;box-shadow:var(--shadow)}
+.player{width:316px;flex-shrink:0;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.player .label{margin:6px 0 0;font-size:14px}
+.player .song{margin:0;font-size:28px;font-weight:700;color:var(--red);line-height:1.15}
+.small{margin:0;font-size:12px;color:var(--muted)}
+.track{width:100%;height:2px;background:var(--line);margin:14px 0 18px}
+.track i{display:block;width:62%;height:2px;background:var(--red)}
+.cta{flex:1;min-width:0;padding:36px 40px;display:flex;flex-direction:column;justify-content:space-between;gap:28px}
+.cta h3{margin:0;font-size:26px;font-weight:700;line-height:1.25}
+.cta h3 span{color:var(--red)}
+.cta p.lead{margin:12px 0 0;font-size:14px;line-height:1.55;color:var(--muted);max-width:520px}
+.cta .actions{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.cta .note{margin:0;font-size:12px;line-height:1.6;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 26px;border-radius:999px;border:1.5px solid var(--yellow);background:var(--yellow);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;text-decoration:none}
+.btn.big{min-height:52px;padding:0 36px;font-size:15px}
+.btn.outline{background:#fff;color:var(--yellow-ink)}
+.btn.wide{width:241px}
+.closed-big{margin:0;font-size:28px;font-weight:700;color:var(--red)}
+
+/* Order flow */
+dialog{width:min(949px,100vw);max-width:100vw;height:min(640px,100dvh);max-height:100dvh;padding:0;border:none;border-radius:16px;overflow:hidden;color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.tf{height:100%;display:flex;flex-direction:column;background:#fff}
+.tf-progress{height:4px;background:#F0F0F0}
+.tf-progress i{display:block;height:4px;background:var(--red);transition:width .2s}
+.tf-head{padding:20px 32px 0;display:flex;justify-content:space-between;align-items:center}
+.icon-btn{width:44px;height:44px;border:none;background:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.icon-btn.grey{background:#F3F3F3}
+.tf-body{flex:1;min-height:0;overflow:auto;padding:24px 120px 0;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.q{margin:0;font-size:26px;font-weight:600;line-height:1.3}
+.q .n{color:var(--red);font-size:16px}
+.q .opt{font-size:14px;font-weight:400;color:var(--muted)}
+.hint{margin:-8px 0 0;font-size:14px;color:var(--muted)}
+.line-input{width:100%;border:none;border-bottom:2px solid var(--yellow);padding:8px 0;font-size:24px;background:transparent;resize:none}
+.line-input.mid{font-size:20px}
+.line-input:focus{outline:none;border-bottom-color:var(--red)}
+.line-input::placeholder{color:#B5B5B5}
+.songs{display:flex;flex-direction:column;gap:8px}
+.song-opt{display:flex;align-items:center;gap:14px;width:100%;min-height:48px;padding:8px 14px;border-radius:10px;border:1.5px solid #EFE3BF;background:#FFFCF4;cursor:pointer;font-size:15px;text-align:left}
+.song-opt[aria-pressed="true"]{border-color:var(--yellow);background:#FDF3D9}
+.song-opt .key{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--yellow);font-size:12px;font-weight:700;color:var(--yellow-ink);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.song-opt .artist{color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid var(--yellow);background:#fff;color:var(--yellow-ink);font-size:14px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--yellow);color:var(--ink)}
+.amount{min-width:92px;min-height:56px;padding:0 20px;border-radius:12px;border:1.5px solid var(--yellow);background:#fff;color:var(--yellow-ink);font-size:18px;font-weight:700;cursor:pointer}
+.amount[aria-pressed="true"]{background:var(--yellow);color:var(--ink)}
+.quote{border-left:3px solid var(--red);padding:6px 0 6px 20px}
+.quote p{margin:0 0 10px;font-size:20px;line-height:1.5}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:12px;line-height:1.45}
+.check input{width:18px;height:18px;margin:0;flex-shrink:0;accent-color:var(--yellow)}
+.error{margin:0;font-size:13px;color:var(--red);min-height:18px}
+.tf-foot{padding:24px 120px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.tf-foot .left{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.tf-foot .nav{display:flex;gap:6px}
+.done{align-items:center;text-align:center}
+.done .time{margin:0;font-size:34px;font-weight:700;color:var(--red)}
+
+@media (max-width:760px){
+  .row{flex-direction:column}
+  .player{width:100%}
+  .cta{padding:24px 20px}
+  .cta h3{font-size:21px}
+  .btn.wide,.cta .btn.big{width:100%}
+  dialog{border-radius:0;height:100dvh}
+  .tf-body{padding:16px 20px 0;justify-content:flex-start}
+  .tf-foot{padding:16px 20px 20px}
+  .q{font-size:21px}
+  .line-input{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<main class="col">
+  <h2 class="section-title">Pasūti dziesmu ar sveicienu Eņģeļu straumē</h2>
+  <div class="row">
+    <!-- API: GET /api/now-playing -->
+    <div class="card player">
+      <svg aria-hidden="true" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>
+      <p class="label">Tagad skan Star FM Eņģeļu straumē</p>
+      <p class="song">Last Christmas</p>
+      <p class="small">Wham! · sveiciens no Valmieras</p>
+      <div class="track"><i></i></div>
+      <!-- Real build: hls.js player on STREAM_PUBLIC_URL -->
+      <button class="btn outline wide" id="listen" type="button">Klausīties tiešraidi</button>
+    </div>
+
+    <div class="card cta" id="cta-open">
+      <div>
+        <h3>Velti dziesmu un savu sveicienu – <span>ēterā</span></h3>
+        <p class="lead">Izvēlies dziesmu, uzraksti dažus vārdus un ziedo no 3 €. Tavs sveiciens izskanēs pirms dziesmas, bet viss ziedojums aizies bērniem.</p>
+      </div>
+      <div class="actions">
+        <button class="btn big" id="open-order" type="button">Pasūtīt dziesmu</button>
+        <p class="note">Aizņem ~1 minūti · 8:00–21:00<br>E-pasts 30 min pirms tavas dziesmas</p>
+      </div>
+    </div>
+
+    <!-- API: GET /api/availability decides which card shows -->
+    <div class="card cta" id="cta-closed" hidden>
+      <div>
+        <p style="margin:0 0 10px;font-size:16px">Šodienas sveicieni ir pasūtīti</p>
+        <p class="closed-big">Pasūtīšana atsāksies rīt 8:00</p>
+        <p class="lead">Sveicienus pieņemam 8:00–21:00, un dienā ēterā skan ierobežots to skaits. Līdz tam vari klausīties citu sveicienus vai ziedot citā veidā.</p>
+      </div>
+      <div class="actions">
+        <a class="btn outline" href="#visas-iespejas">Visas ziedošanas iespējas</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<dialog id="order" aria-label="Pasūti dziesmu ar sveicienu">
+  <div class="tf">
+    <div class="tf-progress"><i id="bar"></i></div>
+    <div class="tf-head">
+      <p class="small" id="step-label"></p>
+      <button class="icon-btn" id="close" type="button" aria-label="Aizvērt">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="tf-body" id="body"></div>
+    <div class="tf-foot" id="foot"></div>
+  </div>
+</dialog>
+
+<script>
+// ---- Sample data (API: GET /api/songs?q=) ----
+const SONGS = [
+  { id: 'feliz',  title: 'Feliz Navidad', artist: 'José Feliciano' },
+  { id: 'last',   title: 'Last Christmas', artist: 'Wham!' },
+  { id: 'lec',    title: 'Lec, Saulīte', artist: 'Prāta Vētra' },
+  { id: 'abra',   title: 'Abrakadabra', artist: 'Musiqq' },
+  { id: 'ziem',   title: 'Ziemeļmeita', artist: 'Jumprava' },
+  { id: 'mariah', title: 'All I Want for Christmas Is You', artist: 'Mariah Carey' },
+  { id: 'cold',   title: 'Christmas Lights', artist: 'Coldplay' }
+];
+const RECIPIENTS = ['mammai', 'tētim', 'vecvecākiem', 'draugiem', 'kolēģiem', 'visiem klausītājiem'];
+const WISHES = ['Lai Ziemassvētki silti!', 'Priecīgus svētkus!', 'Paldies, ka esi!'];
+const AMOUNTS = [3, 5, 10, 20];           // EUR; 3 is the minimum and the default
+const MIN_AGE = 16;                        // [OPEN] in SPEC
+const LABELS = ['Dziesma', 'Vārds', 'Pilsēta', 'Adresāts', 'Novēlējums', 'Pārbaude', 'E-pasts', 'Ziedojums'];
+const N = LABELS.length;
+const TIME_WINDOW = 'šodien ~20:00–21:00'; // API: computed by the scheduler simulation
+
+const fresh = () => ({ step: 0, query: '', song: null, name: '', city: '', to: '', msg: '', email: '', amount: 3, consent: false, news: false, error: '', done: false });
+let state = fresh();
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const check = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>';
+
+// The real on-air text comes from POST /api/greeting-preview, which moderates
+// the fields and fixes Latvian noun cases. This client version avoids declension.
+function greetingText() {
+  const parts = [`${state.name} (${state.city}) velta šo dziesmu${state.to ? ' ' + state.to : ''}.`];
+  if (state.msg) parts.push(state.msg);
+  parts.push('Paldies, ka atbalsti Eņģeļus pār Latviju!');
+  return '„' + parts.join(' ') + '“';
+}
+
+function validate(step) {
+  if (step === 0 && !state.song) return 'Izvēlies dziesmu no saraksta.';
+  if (step === 1 && !state.name.trim()) return 'Ieraksti savu vārdu.';
+  if (step === 1 && /\s/.test(state.name.trim())) return 'Lūdzu, tikai vārdu – bez uzvārda.';
+  if (step === 2 && !state.city.trim()) return 'Ieraksti pilsētu vai novadu.';
+  if (step === 6 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email.trim())) return 'Ieraksti derīgu e-pasta adresi.';
+  if (step === 7 && !state.consent) return 'Lai turpinātu, nepieciešama piekrišana.';
+  return '';
+}
+
+function go(n) {
+  if (n > state.step) {
+    const err = validate(state.step);
+    if (err) { state.error = err; render(); return; }
+  }
+  state.error = '';
+  state.step = Math.max(0, Math.min(N - 1, n));
+  render();
+}
+
+function songList() {
+  const q = state.query.toLowerCase().trim();
+  const list = SONGS.filter((s) => !q || (s.title + ' ' + s.artist).toLowerCase().includes(q)).slice(0, 4);
+  if (!list.length) return '<p class="small">Šādu dziesmu neatradām – pamēģini izpildītāja vārdu.</p>';
+  return list.map((s, i) => `
+    <button type="button" class="song-opt" data-song="${s.id}" aria-pressed="${state.song === s.id}">
+      <span class="key">${'ABCD'[i]}</span>
+      <span><b>${esc(s.title)}</b> <span class="artist">· ${esc(s.artist)}</span></span>
+    </button>`).join('');
+}
+
+const head = (n, text, opt) => `<span class="n">${n} → </span>${text}${opt ? ' <span class="opt">(neobligāti)</span>' : ''}`;
+
+function stepHtml() {
+  const s = state;
+  switch (s.step) {
+    case 0: return `
+      <label class="q" for="f-query">${head(1, 'Kuru dziesmu gribi kādam veltīt?')}</label>
+      <input class="line-input" id="f-query" data-field="query" type="search" autocomplete="off" placeholder="Raksti dziesmu vai izpildītāju…" value="${esc(s.query)}">
+      <div class="songs" id="songs">${songList()}</div>`;
+    case 1: return `
+      <label class="q" for="f-name">${head(2, 'Kā tevi sauc?')}</label>
+      <p class="hint">Tikai vārds, bez uzvārda – tas izskanēs ēterā.</p>
+      <input class="line-input" id="f-name" data-field="name" type="text" maxlength="20" autocomplete="given-name" placeholder="Tavs vārds" value="${esc(s.name)}">`;
+    case 2: return `
+      <label class="q" for="f-city">${head(3, `No kurienes tu esi, ${esc(s.name)}?`)}</label>
+      <input class="line-input" id="f-city" data-field="city" type="text" maxlength="24" placeholder="Pilsēta vai novads" value="${esc(s.city)}">`;
+    case 3: return `
+      <p class="q">${head(4, 'Kam velti šo dziesmu?', true)}</p>
+      <div class="chips">${RECIPIENTS.map((t) => `<button type="button" class="chip" data-to="${esc(t)}" aria-pressed="${s.to === t}">${esc(t)}</button>`).join('')}</div>
+      <input class="line-input mid" id="f-to" data-field="to" type="text" maxlength="24" aria-label="Kam velti" placeholder="vai uzraksti pats…" value="${esc(s.to)}">`;
+    case 4: return `
+      <label class="q" for="f-msg">${head(5, 'Ko novēlēsi?', true)}</label>
+      <div class="chips">${WISHES.map((t) => `<button type="button" class="chip" data-wish="${esc(t)}" aria-pressed="${s.msg === t}">${esc(t)}</button>`).join('')}</div>
+      <textarea class="line-input mid" id="f-msg" data-field="msg" rows="2" maxlength="100" placeholder="Īss novēlējums…">${esc(s.msg)}</textarea>
+      <p class="small"><span id="count">${s.msg.length}</span> / 100 · bez uzvārdiem, tālruņiem un adresēm</p>`;
+    case 5: {
+      const song = SONGS.find((x) => x.id === s.song);
+      return `
+      <p class="q">${head(6, 'Tā tas skanēs ēterā. Viss pareizi?')}</p>
+      <div class="quote">
+        <p>${esc(greetingText())}</p>
+        <p class="small" style="font-size:14px">Pēc tam skanēs: <b style="color:var(--ink)">${esc(song.title)}</b> · ${esc(song.artist)}</p>
+      </div>
+      <p class="small" style="font-size:14px">Paredzamais laiks: <b style="color:var(--ink)">${TIME_WINDOW}</b>. Sveicienu nolasa mākslīgā intelekta balss.</p>`;
+    }
+    case 6: return `
+      <label class="q" for="f-email">${head(7, 'Kur tev paziņot, kad skanēs tava dziesma?')}</label>
+      <p class="hint">Uzrakstīsim 30 minūtes iepriekš ar precīzu laiku.</p>
+      <input class="line-input" id="f-email" data-field="email" type="email" autocomplete="email" placeholder="vards@epasts.lv" value="${esc(s.email)}">`;
+    default: return `
+      <p class="q">${head(8, 'Cik vēlies ziedot?')}</p>
+      <div class="chips">${AMOUNTS.map((v) => `<button type="button" class="amount" data-amount="${v}" aria-pressed="${s.amount === v}">${v} €</button>`).join('')}</div>
+      <p class="small" style="font-size:13px">Pietiek ar 3 €. Lielāka summa neietekmē laiku – tā vienkārši palīdz vairāk.</p>
+      <label class="check"><input type="checkbox" data-check="consent" ${s.consent ? 'checked' : ''}><span>Piekrītu, ka mans vārds, pilsēta un sveiciens izskan ēterā. Man ir vismaz ${MIN_AGE} gadi. <a href="#privatums">Privātuma politika</a></span></label>
+      <label class="check" style="color:var(--muted)"><input type="checkbox" data-check="news" ${s.news ? 'checked' : ''}><span>Vēlos saņemt ziņas par “Eņģeļi pār Latviju” (neobligāti)</span></label>`;
+  }
+}
+
+function okLabel() {
+  if (state.step === 3 && !state.to) return 'Izlaist';
+  if (state.step === 4 && !state.msg) return 'Izlaist';
+  if (state.step === 5) return 'Jā, turpināt';
+  return 'OK';
+}
+
+function render() {
+  const s = state;
+  if (s.done) return renderDone();
+  $('#bar').style.width = Math.round(((s.step + 1) / N) * 100) + '%';
+  $('#step-label').textContent = `Eņģeļu straume · ${s.step + 1} no ${N} · ${LABELS[s.step]}`;
+  $('#body').className = 'tf-body';
+  $('#body').innerHTML = stepHtml() + `<p class="error" role="alert">${esc(s.error)}</p>`;
+  const last = s.step === N - 1;
+  $('#foot').innerHTML = `
+    <div class="left">
+      ${last
+        ? `<button type="button" class="btn big" data-pay>Ziedot ${s.amount} € ar Paysera</button><span class="small">Bankas saite, karte, Apple Pay, Google Pay</span>`
+        : `<button type="button" class="btn" data-next>${okLabel()} ${check}</button><span class="small">vai nospied <b>Enter ↵</b></span>`}
+    </div>
+    <div class="nav">
+      <button type="button" class="icon-btn grey" data-back aria-label="Iepriekšējais jautājums"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
+      <button type="button" class="icon-btn grey" data-next aria-label="Nākamais jautājums"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>`;
+  const field = $('#body').querySelector('[data-field]');
+  if (field) { field.focus(); if (field.setSelectionRange && field.type !== 'email') field.setSelectionRange(field.value.length, field.value.length); }
+}
+
+// Shown after the Paysera redirect returns. API: GET /api/orders/:token
+function renderDone() {
+  const song = SONGS.find((x) => x.id === state.song);
+  $('#bar').style.width = '100%';
+  $('#step-label').textContent = 'Eņģeļu straume · Paldies!';
+  $('#body').className = 'tf-body done';
+  $('#body').innerHTML = `
+    <p class="q">Paldies, ${esc(state.name)}! Tavs sveiciens ir pieņemts</p>
+    <p class="small" style="font-size:14px">${esc(song.title)} · ${esc(song.artist)}</p>
+    <p class="small">Paredzamais laiks šodien</p>
+    <p class="time">20:00–21:00</p>
+    <p class="small" style="font-size:14px;max-width:460px">Precīzu laiku nosūtīsim uz ${esc(state.email)} 30 minūtes iepriekš. Sveicienu vari atcelt ar saiti e-pastā līdz tā atskaņošanai.</p>`;
+  $('#foot').innerHTML = `<div class="left"><button type="button" class="btn" data-close>Klausīties tiešraidi</button><button type="button" class="btn outline" data-again>Pasūtīt vēl vienu</button></div><span></span>`;
+}
+
+const dlg = $('#order');
+
+dlg.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.song) { state.song = t.dataset.song; go(1); }
+  else if (t.dataset.to !== undefined) { state.to = t.dataset.to; go(4); }
+  else if (t.dataset.wish !== undefined) { state.msg = t.dataset.wish; render(); }
+  else if (t.dataset.amount) { state.amount = Number(t.dataset.amount); render(); }
+  else if ('next' in t.dataset) go(state.step + 1);
+  else if ('back' in t.dataset) go(state.step - 1);
+  else if ('pay' in t.dataset) {
+    const err = validate(N - 1);
+    if (err) { state.error = err; render(); return; }
+    // API: POST /api/orders → redirect to the returned Paysera URL.
+    state.done = true; render();
+  }
+  else if ('again' in t.dataset) { state = fresh(); render(); }
+  else if ('close' in t.dataset || t.id === 'close') dlg.close();
+});
+
+dlg.addEventListener('input', (e) => {
+  const f = e.target.dataset.field;
+  if (f) {
+    state[f] = e.target.value;
+    if (f === 'query') $('#songs').innerHTML = songList();
+    if (f === 'msg') $('#count').textContent = state.msg.length;
+  }
+  const c = e.target.dataset.check;
+  if (c) state[c] = e.target.checked;
+});
+
+dlg.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.shiftKey || state.done) return;
+  if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+  e.preventDefault();
+  if (state.step < N - 1) go(state.step + 1);
+});
+
+$('#open-order').addEventListener('click', () => { state = fresh(); dlg.showModal(); render(); });
+
+// Demo-only toggles
+let playing = false;
+$('#listen').addEventListener('click', (e) => { playing = !playing; e.currentTarget.textContent = playing ? 'Apturēt' : 'Klausīties tiešraidi'; });
+if (new URLSearchParams(location.search).has('closed')) { $('#cta-open').hidden = true; $('#cta-closed').hidden = false; }
+</script>
+</body>
+</html>

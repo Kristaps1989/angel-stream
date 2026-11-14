@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<title>Pasūti dziesmu ar sveicienu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1D1D1B}a:hover{color:#E3342F}
+input::placeholder,textarea::placeholder{color:#B5B5B5}
+input:focus,textarea:focus{outline:none;border-bottom-color:#E3342F}
+</style>
+</helmet>
+<div style="width: 949px; height: 640px; box-sizing: border-box; background: #FFFFFF; border-radius: 16px; overflow: hidden; font-family: Montserrat, Arial, sans-serif; color: #1D1D1B; display: flex; flex-direction: column">
+
+<div style="height: 4px; background: #F0F0F0"><div style="width: {{ progress }}; height: 4px; background: #E3342F"></div></div>
+<div style="padding: 20px 32px 0; display: flex; justify-content: space-between; align-items: center">
+<p style="margin: 0; font-size: 12px; color: #555555">Eņģeļu straume · {{ stepLabel }}</p>
+<a href="Main.dc.html" aria-label="Aizvērt" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+</a>
+</div>
+
+<div style="flex: 1; min-height: 0; padding: 24px 120px 0; display: flex; flex-direction: column; justify-content: center; gap: 22px">
+
+<sc-if value="{{ q0 }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<label for="tf-song" style="font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">1 → </span>Kuru dziesmu gribi kādam veltīt?</label>
+<input id="tf-song" type="search" value="{{ query }}" onInput="{{ onSearch }}" placeholder="Raksti dziesmu vai izpildītāju…" style="border: none; border-bottom: 2px solid #E8B53B; padding: 8px 0; font-family: Montserrat, Arial, sans-serif; font-size: 24px; color: #1D1D1B; background: transparent">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ songs }}" as="s" hint-placeholder-count="4">
+<button type="button" onClick="{{ s.pick }}" aria-pressed="{{ s.pressed }}" style="{{ s.style }}">
+<span style="width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid #E8B53B; font-size: 12px; font-weight: 700; color: #8A6300; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0">{{ s.key }}</span>
+<span style="flex: 1; text-align: left; font-size: 15px"><b>{{ s.title }}</b> <span style="color: #555555">· {{ s.artist }}</span></span>
+<sc-if value="{{ s.selected }}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"></path></svg></sc-if>
+</button>
+</sc-for>
+<sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: #555555">Šādu dziesmu neatradām – pamēģini izpildītāja vārdu.</p></sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ q1 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<label for="tf-name" style="font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">2 → </span>Kā tevi sauc?</label>
+<p style="margin: -8px 0 0; font-size: 14px; color: #555555">Tikai vārds, bez uzvārda – tas izskanēs ēterā.</p>
+<input id="tf-name" type="text" value="{{ name }}" onInput="{{ onName }}" onKeyDown="{{ onEnter }}" maxlength="20" placeholder="Tavs vārds" style="border: none; border-bottom: 2px solid #E8B53B; padding: 8px 0; font-family: Montserrat, Arial, sans-serif; font-size: 24px; color: #1D1D1B">
+</div>
+</sc-if>
+
+<sc-if value="{{ q2 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<label for="tf-city" style="font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">3 → </span>No kurienes tu esi, {{ nameOr }}?</label>
+<input id="tf-city" type="text" value="{{ city }}" onInput="{{ onCity }}" onKeyDown="{{ onEnter }}" maxlength="24" placeholder="Pilsēta vai novads" style="border: none; border-bottom: 2px solid #E8B53B; padding: 8px 0; font-family: Montserrat, Arial, sans-serif; font-size: 24px; color: #1D1D1B">
+</div>
+</sc-if>
+
+<sc-if value="{{ q3 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<p style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">4 → </span>Kam velti šo dziesmu?</p>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<sc-for list="{{ toChips }}" as="c" hint-placeholder-count="6">
+<button type="button" onClick="{{ c.pick }}" aria-pressed="{{ c.pressed }}" style="{{ c.style }}">{{ c.label }}</button>
+</sc-for>
+</div>
+<input type="text" value="{{ to }}" onInput="{{ onTo }}" onKeyDown="{{ onEnter }}" maxlength="24" placeholder="vai uzraksti pats…" aria-label="Kam velti" style="border: none; border-bottom: 2px solid #E8B53B; padding: 8px 0; font-family: Montserrat, Arial, sans-serif; font-size: 20px; color: #1D1D1B">
+</div>
+</sc-if>
+
+<sc-if value="{{ q4 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<label for="tf-msg" style="font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">5 → </span>Ko novēlēsi? <span style="font-size: 14px; font-weight: 400; color: #555555">(neobligāti)</span></label>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<sc-for list="{{ msgChips }}" as="c" hint-placeholder-count="3">
+<button type="button" onClick="{{ c.pick }}" aria-pressed="{{ c.pressed }}" style="{{ c.style }}">{{ c.label }}</button>
+</sc-for>
+</div>
+<textarea id="tf-msg" onInput="{{ onMsg }}" maxlength="100" rows="2" placeholder="Īss novēlējums…" style="border: none; border-bottom: 2px solid #E8B53B; padding: 8px 0; font-family: Montserrat, Arial, sans-serif; font-size: 20px; color: #1D1D1B; resize: none">{{ msg }}</textarea>
+<p style="margin: 0; font-size: 12px; color: #555555">{{ msgCount }} / 100 · bez uzvārdiem, tālruņiem un adresēm</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ q5 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<p style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">6 → </span>Tā tas skanēs ēterā. Viss pareizi?</p>
+<div style="border-left: 3px solid #E3342F; padding: 6px 0 6px 20px; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 20px; line-height: 1.5">{{ preview }}</p>
+<p style="margin: 0; font-size: 14px; color: #555555">Pēc tam skanēs: <b style="color: #1D1D1B">{{ songTitle }}</b> · {{ songArtist }}</p>
+</div>
+<p style="margin: 0; font-size: 14px; color: #555555">Paredzamais laiks: <b style="color: #1D1D1B">šodien ~20:00–21:00</b>. Sveicienu nolasa mākslīgā intelekta balss.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ q6 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<label for="tf-mail" style="font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">7 → </span>Kur tev paziņot, kad skanēs tava dziesma?</label>
+<p style="margin: -8px 0 0; font-size: 14px; color: #555555">Uzrakstīsim 30 minūtes iepriekš ar precīzu laiku.</p>
+<input id="tf-mail" type="email" value="{{ email }}" onInput="{{ onEmail }}" onKeyDown="{{ onEnter }}" placeholder="vards@epasts.lv" style="border: none; border-bottom: 2px solid #E8B53B; padding: 8px 0; font-family: Montserrat, Arial, sans-serif; font-size: 24px; color: #1D1D1B">
+</div>
+</sc-if>
+
+<sc-if value="{{ q7 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<p style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.3"><span style="color: #E3342F; font-size: 16px">8 → </span>Cik vēlies ziedot?</p>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<sc-for list="{{ amounts }}" as="a" hint-placeholder-count="4">
+<button type="button" onClick="{{ a.pick }}" aria-pressed="{{ a.pressed }}" style="{{ a.style }}">{{ a.v }} €</button>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 13px; color: #555555">Pietiek ar 3 €. Lielāka summa neietekmē laiku – tā vienkārši palīdz vairāk.</p>
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px">
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 12px; line-height: 1.45"><input type="checkbox" checked="{{ cAir }}" onChange="{{ onAir }}" style="width: 18px; height: 18px; margin: 0; flex-shrink: 0; accent-color: #E8B53B"><span>Piekrītu, ka mans vārds, pilsēta un sveiciens izskan ēterā. Man ir vismaz [16] gadi. <a href="#privatums" style="color: #1D1D1B">Privātuma politika</a></span></label>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 12px; line-height: 1.45; color: #555555"><input type="checkbox" checked="{{ cNews }}" onChange="{{ onNews }}" style="width: 18px; height: 18px; margin: 0; flex-shrink: 0; accent-color: #E8B53B"><span>Vēlos saņemt ziņas par “Eņģeļi pār Latviju” (neobligāti)</span></label>
+</div>
+</div>
+</sc-if>
+
+</div>
+
+<div style="padding: 24px 120px 32px; display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 14px">
+<sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ next }}" style="border: none; min-height: 46px; padding: 0 26px; border-radius: 999px; background: #E8B53B; color: #1D1D1B; font-family: Montserrat, Arial, sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px">{{ okLabel }} <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"></path></svg></button>
+<span style="font-size: 12px; color: #555555">vai nospied <b>Enter ↵</b></span>
+</sc-if>
+<sc-if value="{{ last }}" hint-placeholder-val="{{ false }}">
+<a href="Success.dc.html" style="text-decoration: none; min-height: 50px; padding: 0 30px; border-radius: 999px; background: #E8B53B; color: #1D1D1B; font-weight: 700; font-size: 15px; display: inline-flex; align-items: center">Ziedot {{ amount }} € ar Paysera</a>
+<span style="font-size: 12px; color: #555555">Bankas saite, karte, Apple Pay, Google Pay</span>
+</sc-if>
+</div>
+<div style="display: flex; gap: 6px">
+<button type="button" onClick="{{ back }}" aria-label="Iepriekšējais jautājums" style="width: 44px; height: 44px; border-radius: 10px; border: none; background: #F3F3F3; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"></path></svg></button>
+<button type="button" onClick="{{ next }}" aria-label="Nākamais jautājums" style="width: 44px; height: 44px; border-radius: 10px; border: none; background: #F3F3F3; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":949,"height":640}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 0, song: '', query: '', name: '', city: '', to: '', msg: '', email: '', amount: 3, cAir: false, cNews: false };
+  }
+  renderVals() {
+    const s = this.state, N = 8;
+    const go = n => this.setState({ step: Math.max(0, Math.min(N - 1, n)) });
+    const lib = [
+      { id: 'feliz', title: 'Feliz Navidad', artist: 'José Feliciano' },
+      { id: 'last', title: 'Last Christmas', artist: 'Wham!' },
+      { id: 'lec', title: 'Lec, Saulīte', artist: 'Prāta Vētra' },
+      { id: 'abra', title: 'Abrakadabra', artist: 'Musiqq' },
+      { id: 'ziem', title: 'Ziemeļmeita', artist: 'Jumprava' },
+      { id: 'mariah', title: 'All I Want for Christmas Is You', artist: 'Mariah Carey' },
+      { id: 'cold', title: 'Christmas Lights', artist: 'Coldplay' }
+    ];
+    const q = (s.query || '').toLowerCase().trim();
+    const optBase = "display: flex; align-items: center; gap: 14px; width: 100%; min-height: 48px; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-family: Montserrat, Arial, sans-serif; color: #1D1D1B; ";
+    const songs = lib.filter(x => !q || (x.title + ' ' + x.artist).toLowerCase().includes(q)).slice(0, 4).map((x, i) => ({
+      key: 'ABCD'[i], title: x.title, artist: x.artist, selected: s.song === x.id, pressed: s.song === x.id ? 'true' : 'false',
+      style: optBase + (s.song === x.id ? 'border: 1.5px solid #E8B53B; background: #FDF3D9' : 'border: 1.5px solid #EFE3BF; background: #FFFCF4'),
+      pick: () => this.setState({ song: x.id, step: 1 })
+    }));
+    const chipBase = "font-family: Montserrat, Arial, sans-serif; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer; border: 1.5px solid #E8B53B; ";
+    const chip = (label, active, fn) => ({ label, pressed: active ? 'true' : 'false', style: chipBase + (active ? 'background: #E8B53B; color: #1D1D1B' : 'background: #FFFFFF; color: #8A6300'), pick: fn });
+    const toChips = ['mammai', 'tētim', 'vecvecākiem', 'draugiem', 'kolēģiem', 'visiem klausītājiem'].map(t => chip(t, s.to === t, () => this.setState({ to: t, step: 4 })));
+    const msgChips = ['Lai Ziemassvētki silti!', 'Priecīgus svētkus!', 'Paldies, ka esi!'].map(t => chip(t, s.msg === t, () => this.setState({ msg: t })));
+    const aBase = "font-family: Montserrat, Arial, sans-serif; font-weight: 700; font-size: 18px; min-width: 92px; min-height: 56px; padding: 0 20px; border-radius: 12px; cursor: pointer; border: 1.5px solid #E8B53B; ";
+    const amounts = [3, 5, 10, 20].map(v => ({ v, pressed: s.amount === v ? 'true' : 'false', style: aBase + (s.amount === v ? 'background: #E8B53B; color: #1D1D1B' : 'background: #FFFFFF; color: #8A6300'), pick: () => this.setState({ amount: v }) }));
+    const cur = lib.find(x => x.id === s.song) || lib[0];
+    const preview = '„' + (s.name || 'Anna') + ' no ' + (s.city || 'Cēsīm') + ' velta šo dziesmu' + (s.to ? ' ' + s.to : '') + '. ' + (s.msg ? s.msg + ' ' : '') + 'Paldies, ka atbalsti Eņģeļus pār Latviju!“';
+    const labels = ['Dziesma', 'Vārds', 'Pilsēta', 'Adresāts', 'Novēlējums', 'Pārbaude', 'E-pasts', 'Ziedojums'];
+    const flags = {};
+    for (let i = 0; i < N; i++) flags['q' + i] = s.step === i;
+    return {
+      ...flags,
+      progress: Math.round(((s.step + 1) / N) * 100) + '%',
+      stepLabel: (s.step + 1) + ' no ' + N + ' · ' + labels[s.step],
+      okLabel: s.step === 3 || s.step === 4 ? (s.step === 3 && !s.to ? 'Izlaist' : 'OK') : s.step === 5 ? 'Jā, turpināt' : 'OK',
+      notLast: s.step < N - 1, last: s.step === N - 1,
+      next: () => go(s.step + 1), back: () => go(s.step - 1),
+      onEnter: e => { if (e.key === 'Enter') { e.preventDefault(); go(s.step + 1); } },
+      songs, empty: songs.length === 0, query: s.query, onSearch: e => this.setState({ query: e.target.value }),
+      name: s.name, nameOr: s.name || 'Anna', city: s.city, to: s.to, msg: s.msg, msgCount: (s.msg || '').length, email: s.email,
+      onName: e => this.setState({ name: e.target.value }), onCity: e => this.setState({ city: e.target.value }),
+      onTo: e => this.setState({ to: e.target.value }), onMsg: e => this.setState({ msg: e.target.value }), onEmail: e => this.setState({ email: e.target.value }),
+      toChips, msgChips, amounts, amount: s.amount, preview, songTitle: cur.title, songArtist: cur.artist,
+      cAir: s.cAir, cNews: s.cNews, onAir: e => this.setState({ cAir: e.target.checked }), onNews: e => this.setState({ cNews: e.target.checked })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+/*
+ * Tokens from docs/DESIGN.md. Colours and font are estimates until the exact
+ * Figma values are applied. Everything is scoped under .angel-stream so the
+ * block cannot leak styles into the host page.
+ */
+.angel-stream {
+  --as-bg: #f7f7f7;
+  --as-card: #ffffff;
+  --as-card-radius: 14px;
+  --as-card-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --as-ink: #1d1d1b;
+  --as-muted: #555555;
+  --as-red: #e3342f;
+  --as-yellow: #e8b53b;
+  --as-yellow-ink: #8a6300;
+  --as-line: #e6e6e6;
+  --as-font: "Montserrat", system-ui, sans-serif;
+  --as-column: 980px;
+  --as-gap: 16px;
+  --as-small-card: 316px;
+
+  box-sizing: border-box;
+  max-width: var(--as-column);
+  margin: 0 auto;
+  color: var(--as-ink);
+  font-family: var(--as-font);
+}
+
+.angel-stream *,
+.angel-stream *::before,
+.angel-stream *::after {
+  box-sizing: inherit;
+}
+
+.angel-stream__title {
+  margin: 0 0 var(--as-gap);
+  font-size: 22px;
+  font-weight: 400;
+}
